@@ -22,6 +22,11 @@ class ParserBuilder():
         'tag': ('', str),
         'smoothing': (0.001, float),
         'no_show': (False, bool),
+        'root_path': ('', str),
+        'subdir': ('', str),
+        'dataset': ('', str),
+        'marginal': (1, int),
+        'features': ('', str)
         }
     file_paths = {
             'micro_file',

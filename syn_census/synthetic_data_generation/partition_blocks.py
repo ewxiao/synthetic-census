@@ -6,7 +6,7 @@ import numpy as np
 import torch
 import pdb
 from .guided_solver import SOLVER_PARAMS, SOLVER_RESULTS, SolverResults, solve, reduce_dist
-from ..utils.encoding import encode_hh_dist, encode_row, encode4_row, encode4_hh_dist, encode_raprank
+from ..utils.encoding import encode4_row, encode4_hh_dist, encode_raprank
 from ..utils.census_utils import *
 from ..preprocessing.build_micro_dist import read_microdata
 from .mcmc_sampler import MCMCSampler
@@ -14,7 +14,6 @@ from syndata_reconstruction.utils.general import get_qm
 from dp_data import get_dataset
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-
 def read_block_data(block_clean_file: str):
     return pd.read_csv(block_clean_file)
 
@@ -42,7 +41,6 @@ def generate_data(
         features: str = ''
         ):
     SOLVER_PARAMS.num_sols = num_sols
-
     # df = read_block_data(block_clean_file)
     # # non-empty rows
     # df = df[df['H7X001'] > 0]
@@ -64,7 +62,7 @@ def generate_data(
     data = get_dataset(geo_id, root_path=root_path).drop(features_drop)
     domain = data.domain
     n = len(data.df)
-    query_manager = get_qm(MARGINAL, geo_id, data, root_path, device, unit = True)
+    query_manager = get_qm([marginal], geo_id, data, root_path, device, unit = True)
     answers = query_manager.get_answers(data, density = False)
     hh_dist = encode4_hh_dist(data, domain, query_manager)
     answer_encoding = encode4_row(answers)
@@ -82,13 +80,6 @@ def generate_data(
 
     samplers = {}
 
-    # for i, (ind, row) in enumerate(df.iterrows()):
-    #     print()
-    #     print('index', ind, 'id', row['identifier'])
-    #     if row['identifier'] in already_finished:
-    #         print(row['identifier'], 'already finished')
-    #         continue
-    #     identifier = str(row['identifier'])
     sol = solve(hh_dist, raprank_encoding, n = n,answers = answers)
     print(len(sol), 'unique solutions')
     chosen = sample_from_sol(sol)
