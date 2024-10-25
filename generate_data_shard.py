@@ -18,6 +18,11 @@ parser_builder = ParserBuilder({
     'task_name': False,
     'include_probs': False,
     'dist_adjustment': False,
+    'root_path': True,
+    'subdir': True,
+    'dataset': True,
+    'marginal': True,
+    'features': True
     })
 
 def get_tmp_file(fname_re: str, directory: str):
@@ -39,17 +44,11 @@ def remove_all_tmps(fname_re: str, directory: str):
             os.remove(os.path.join(directory, f))
 
 if __name__ == '__main__':
-    rap_parser = argparse.ArgumentParser()
-    rap_parser.add_argument("--root_path")
-    rap_parser.add_argument("--subdir")
-    rap_parser.add_argument("--dataset")
-    rap_parser.add_argument("--marginal")
-    rap_args = rap_parser.parse_args()
-    root_path, subdir, dataset, marginal, features = rap_args.root_path, rap_args.subdir, rap_args.dataset, rap_args.marginal, rap_args.features
     parser_builder.parse_args()
     args = parser_builder.args
     task = args.task
     num_tasks = args.num_tasks
+    root_path, subdir, dataset, marginal, features = args.root_path, args.subdir, args.dataset, args.marginal, args.features
     if args.task_name != '':
         task_name = args.task_name + '_'
     else:
