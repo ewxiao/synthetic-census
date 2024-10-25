@@ -3,6 +3,41 @@ from functools import lru_cache
 import re
 # from config import *
 
+def get_hht_from_line(line):
+    hht = int(line[3])
+    assert 0 <= hht and hht <= 9
+    return hht
+
+def get_ten_from_data(line):
+    ten = int(line[0])
+    assert 0 <= ten and ten <= 4
+    return ten
+
+def get_size_from_data(line):
+    size = int(line[2])
+    assert 0 <= size and size <= 7
+    return size
+
+def get_ten_counts(row):
+    return tuple(row['IFF00' + str(i)] for i in range(2, 5))
+
+def get_hht_counts(row):
+    return tuple(row['H8C00' + str(i)] for i in [3, 5, 6, 8, 9]) # married, family male hhldr, family female hhldr, nonfamily alone, nonfamily not alone
+
+def get_size_counts(row):
+    return tuple(row['IFO00' + str(i)] for i in range(2, 9))
+
+def get_hht_from_h_record(h_record):
+    hht = int(h_record[57:58])
+    assert 0 <= hht and hht <= 9
+    return hht
+
+def get_ten_from_h_record(h_record):
+    ten = int(h_record[55:56])
+    assert 0 <= ten and ten <= 4
+    return ten
+
+###################################################################3
 class Race(Enum):
     WHITE = auto()
     BLACK = auto()

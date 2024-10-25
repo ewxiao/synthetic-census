@@ -5,6 +5,7 @@ from syn_census.synthetic_data_generation.partition_blocks import generate_data
 import sys
 import os
 import pickle
+import argparse
 
 parser_builder = ParserBuilder({
     'state': True,
@@ -38,8 +39,14 @@ def remove_all_tmps(fname_re: str, directory: str):
             os.remove(os.path.join(directory, f))
 
 if __name__ == '__main__':
+    rap_parser = argparse.ArgumentParser()
+    rap_parser.add_argument("--root_path")
+    rap_parser.add_argument("--subdir")
+    rap_parser.add_argument("--dataset")
+    rap_parser.add_argument("--marginal")
+    rap_args = rap_parser.parse_args()
+    root_path, subdir, dataset, marginal, features = rap_args.root_path, rap_args.subdir, rap_args.dataset, rap_args.marginal, rap_args.features
     parser_builder.parse_args()
-    print(parser_builder.args)
     args = parser_builder.args
     task = args.task
     num_tasks = args.num_tasks
@@ -53,9 +60,9 @@ if __name__ == '__main__':
             weights = pickle.load(f)
     out_file = args.synthetic_output_dir + task_name + '%d_%d.pkl' % (task, num_tasks)
     tmp_file = args.synthetic_output_dir + task_name + '%d_%d_tmp.pkl' % (task, num_tasks)
-    if os.path.exists(out_file):
-        print(out_file, 'already exists')
-        sys.exit(0)
+    # if os.path.exists(out_file):
+    #     print(out_file, 'already exists')
+    #     sys.exit(0)
 
     output, errors = generate_data(
             args.micro_file,
@@ -66,6 +73,11 @@ if __name__ == '__main__':
             include_probs=args.include_probs,
             tmp_file=tmp_file,
             weights=weights,
+            root_path = root_path,
+            subdir = subdir,
+            dataset = dataset,
+            marginal = marginal,
+            features = features
             )
 
     print('errors', errors, file=sys.stderr)

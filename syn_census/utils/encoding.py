@@ -1,8 +1,11 @@
 from collections import namedtuple, Counter
 import numpy as np
+import pandas as pd
 from ..preprocessing.build_micro_dist import rh_to_str, r_to_str, t_to_str
 from .knapsack_utils import make_one_hot_np
-from .census_utils import get_rh_counts, get_over_18_counts, get_age_eth, get_types, get_num_hhs, RACE_HIS_ENUM, Race, TYPES, TYPE_INDEX
+from .census_utils import get_rh_counts, get_over_18_counts, get_age_eth, get_types, get_num_hhs, get_ten_counts, get_hht_counts, get_size_counts, RACE_HIS_ENUM, Race, TYPES, TYPE_INDEX
+from dp_data import Dataset
+
 
 MAX_LEVEL = 3
 
@@ -177,4 +180,61 @@ class Encoding3b(namedtuple('Encoding3b',
     def __str__(self):
         d = self._asdict()
         return str({k: v for k, v in d.items() if v > 0})
+
+ten_range = range(1,4)
+size_range = range(1,8)
+hht_range = range(1,6)
+total_range = range(114)
+class Encoding4(namedtuple('Encoding4',
+        ["answer"])):
+    
+    def to_sol(self):
+        return self
+
+    def __str__(self):
+        d = self._asdict()
+        return str({k: v for k, v in d.items() if v > 0})
+
+    def reduce(self, level, use_age):
+        return self
+
+def encode4_row(answers):
+    # ten_counts = get_ten_counts(row)
+    # size_counts = get_size_counts(row)
+    # hht_counts = get_hht_counts(row)
+    # num_hh = (get_num_hhs(row),)
+    # return Encoding4(*(ten_counts  + hht_counts + num_hh)) #+ size_counts
+    return answers
+
+def encode4_hh_dist(data, domain, qm):
+    # new_dist = Counter()
+    # for hh, prob in dist.items():
+    #     ten = make_one_hot_np(hh.ten, 5)
+    #     ten = (ten[1], ten[2], ten[3] + ten[4])
+    #     size = tuple(make_one_hot_np(min(hh.size, 7), len(size_range) + 1))[1:8]
+    #     hht = make_one_hot_np(hh.hht, 8)
+    #     hht = (hht[1], hht[2], hht[3], hht[4] + hht[6], hht[5] + hht[7])
+    #     num_hh = (1,)
+    #     new_dist[Encoding4(*(ten + hht + num_hh))] += prob #+ size 
+    # return new_dist
+    df = data.df
+    new_dist = Counter()
+    for index, row in df.iterrows():
+        row_df = row.to_frame().T
+        row_data = Dataset(row_df, domain)
+        answer = qm.get_answers(row_data)
+        new_dist[answer] += 1
+    return new_dist
+    # return {k: v for k, v in enumerate(dist)}
+
+def encode_raprank(path, domain, qm):
+    df = pd.read_csv(path)
+    d = {}
+    for index, row in df.iterrows():
+        n = row.iloc[-1]
+        row_df = row.iloc[:-1].to_frame().T
+        row_data = Dataset(row_df, domain)
+        answer = qm.get_answers(row_data)
+        d[answer] = n
+    return d
 

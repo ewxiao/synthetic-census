@@ -23,7 +23,8 @@ def exp_noramlize_list(l: list):
     return [i / s for i in new_l]
 
 def get_ordering(dist: dict):
-    return sorted(list(dist.keys()))
+    # return sorted(list(dist.keys()))
+    return list(dist.keys())
 
 def is_eligible(house, counts):
     return all(i <= j for i, j in zip(house, counts))

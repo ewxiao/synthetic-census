@@ -3,7 +3,7 @@ from collections import OrderedDict, Counter
 from ..utils.census_utils import has_valid_age_data
 from ..utils.knapsack_utils import normalize, exp_normalize, perms_to_combs, tup_sum, tup_minus
 from ..utils.ip_distribution import ip_solve
-from ..utils.encoding import encode_row, get_num_hhs, MAX_LEVEL
+from ..utils.encoding import encode_row, get_num_hhs, MAX_LEVEL, encode4_row
 
 class SolverParams():
     def __init__(self, num_sols):
@@ -48,29 +48,28 @@ def reduce_dist(dist, level, use_age):
         c[k.reduce(level, use_age)] += v
     return normalize(c)
 
-def solve(row, dist, level=1):
+def solve(dist, raprank, level=1, n = None, row = None, answers = None):
     SOLVER_RESULTS.level = level
-    if level > MAX_LEVEL:
-        SOLVER_RESULTS.status = SolverResults.UNSOLVED
-        return OrderedDict()
+    # if level > MAX_LEVEL:
+    #     SOLVER_RESULTS.status = SolverResults.UNSOLVED
+    #     return OrderedDict()
     solve_dist = dist
-    use_age = has_valid_age_data(row)
+    use_age = False #has_valid_age_data(row)
     SOLVER_RESULTS.use_age = use_age
-    counts = encode_row(row)
-    if get_num_hhs(row) == 1 and use_age:
-        SOLVER_RESULTS.status = SolverResults.OK
-        sol = OrderedDict({(counts,): 1.0})
-        return sol
-    if level > 1:
-        solve_dist = reduce_dist(dist, level, use_age)
-        counts = counts.reduce(level, use_age)
-    print(counts)
-    sol = ip_solve(counts, solve_dist, num_solutions=SOLVER_PARAMS.num_sols)
+    counts = encode4_row(answers)
+    # if get_num_hhs(row) == 1 and use_age:
+    #     SOLVER_RESULTS.status = SolverResults.OK
+    #     sol = OrderedDict({(counts,): 1.0})
+    #     return sol
+    # if level > 1:
+    #     solve_dist = reduce_dist(dist, level, use_age)
+    #     counts = counts.reduce(level, use_age)
+    sol = ip_solve(counts, raprank, solve_dist, n = n, num_solutions=SOLVER_PARAMS.num_sols)
     if len(sol) == 0:
-        return solve(row, dist, level + 1)
+        return solve(dist, raprank, level + 1)
     if len(sol) == SOLVER_PARAMS.num_sols:
         SOLVER_RESULTS.status = SolverResults.INCOMPLETE
     else:
         SOLVER_RESULTS.status = SolverResults.OK
-    sol = recompute_probs(sol, solve_dist)
+    # sol = recompute_probs(sol, solve_dist)
     return sol

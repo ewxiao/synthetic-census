@@ -21,10 +21,14 @@ ID_COLS = [
         ]
 
 DATA_PREFIXES = {
+        'H3',
+        'H4',
         'H7',
         'H8',
         'H9',
+        'H13',
         'IA',
+        'IF'
         }
 
 def block_col_select(col):
@@ -47,7 +51,7 @@ def make_identifier_non_unique(df):
 def get_clean_block_df(fname: str):
     df = pd.read_csv(fname)
     df = df[[c for c in df if block_col_select(c)]]
-    df = df[df['H7X001'] > 0]
+    # df = df[df['H7X001'] > 0]
     make_identifier(df)
     print('Block')
     print(df.head())
