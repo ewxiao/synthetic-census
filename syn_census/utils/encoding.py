@@ -220,8 +220,8 @@ def encode_raprank(path, domain, qm):
     df = pd.read_csv(path)
     d = {}
     for index, row in df.iterrows():
-        n = row.iloc[-1]
-        row_df = row.iloc[:-1].to_frame().T
+        n = row.iloc[-2]
+        row_df = row.iloc[:-2].to_frame().T
         for key in domain:
             if key not in row_df:
                 row_df[key] = 0

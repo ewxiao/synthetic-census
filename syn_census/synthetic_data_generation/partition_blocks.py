@@ -57,7 +57,6 @@ def generate_data(
     idxs_keep = []
     unique_queries = []
     descriptions = [query_manager.get_query_desc(i) for i in range(query_manager.num_queries)]
-    pdb.set_trace()
     for idx, workload in enumerate(query_manager.workloads):
         contains_other_cols = np.any([col not in features_list for col in workload])
         if not contains_other_cols:
