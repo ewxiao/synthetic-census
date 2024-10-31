@@ -207,16 +207,6 @@ def encode4_row(answers):
     return answers
 
 def encode4_hh_dist(data, domain, qm):
-    # new_dist = Counter()
-    # for hh, prob in dist.items():
-    #     ten = make_one_hot_np(hh.ten, 5)
-    #     ten = (ten[1], ten[2], ten[3] + ten[4])
-    #     size = tuple(make_one_hot_np(min(hh.size, 7), len(size_range) + 1))[1:8]
-    #     hht = make_one_hot_np(hh.hht, 8)
-    #     hht = (hht[1], hht[2], hht[3], hht[4] + hht[6], hht[5] + hht[7])
-    #     num_hh = (1,)
-    #     new_dist[Encoding4(*(ten + hht + num_hh))] += prob #+ size 
-    # return new_dist
     df = data.df
     new_dist = Counter()
     for index, row in df.iterrows():
@@ -225,7 +215,6 @@ def encode4_hh_dist(data, domain, qm):
         answer = qm.get_answers(row_data)
         new_dist[answer] += 1
     return new_dist
-    # return {k: v for k, v in enumerate(dist)}
 
 def encode_raprank(path, domain, qm):
     df = pd.read_csv(path)
@@ -233,8 +222,11 @@ def encode_raprank(path, domain, qm):
     for index, row in df.iterrows():
         n = row.iloc[-1]
         row_df = row.iloc[:-1].to_frame().T
+        for key in domain:
+            if key not in row_df:
+                row_df[key] = 0
+        row_df = row_df[[x for x in domain]]
         row_data = Dataset(row_df, domain)
         answer = qm.get_answers(row_data)
         d[answer] = n
     return d
-

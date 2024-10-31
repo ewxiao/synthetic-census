@@ -48,7 +48,7 @@ def reduce_dist(dist, level, use_age):
         c[k.reduce(level, use_age)] += v
     return normalize(c)
 
-def solve(dist, raprank, level=1, n = None, row = None, answers = None):
+def solve(dist, raprank, level=1, n = None, row = None, answers = None, constraint_flag = False):
     SOLVER_RESULTS.level = level
     # if level > MAX_LEVEL:
     #     SOLVER_RESULTS.status = SolverResults.UNSOLVED
@@ -64,12 +64,12 @@ def solve(dist, raprank, level=1, n = None, row = None, answers = None):
     # if level > 1:
     #     solve_dist = reduce_dist(dist, level, use_age)
     #     counts = counts.reduce(level, use_age)
-    sol = ip_solve(counts, raprank, solve_dist, n = n, num_solutions=SOLVER_PARAMS.num_sols)
-    if len(sol) == 0:
-        return solve(dist, raprank, level + 1)
-    if len(sol) == SOLVER_PARAMS.num_sols:
-        SOLVER_RESULTS.status = SolverResults.INCOMPLETE
-    else:
-        SOLVER_RESULTS.status = SolverResults.OK
+    sol = ip_solve(counts, raprank, solve_dist, n = n, num_solutions=SOLVER_PARAMS.num_sols, constraint_flag = constraint_flag)
+    # if len(sol) == 0:
+    #     return solve(dist, raprank, level + 1)
+    # if len(sol) == SOLVER_PARAMS.num_sols:
+    #     SOLVER_RESULTS.status = SolverResults.INCOMPLETE
+    # else:
+    #     SOLVER_RESULTS.status = SolverResults.OK
     # sol = recompute_probs(sol, solve_dist)
     return sol

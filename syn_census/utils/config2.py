@@ -26,7 +26,7 @@ class ParserBuilder():
         'subdir': ('', str),
         'dataset': ('', str),
         'marginal': (1, int),
-        'features': ('', str)
+        'feature_path': ('', str),
         }
     file_paths = {
             'micro_file',

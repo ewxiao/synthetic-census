@@ -22,7 +22,7 @@ parser_builder = ParserBuilder({
     'subdir': True,
     'dataset': True,
     'marginal': True,
-    'features': True
+    'feature_path': True
     })
 
 def get_tmp_file(fname_re: str, directory: str):
@@ -48,7 +48,7 @@ if __name__ == '__main__':
     args = parser_builder.args
     task = args.task
     num_tasks = args.num_tasks
-    root_path, subdir, dataset, marginal, features = args.root_path, args.subdir, args.dataset, args.marginal, args.features
+    root_path, subdir, dataset, marginal, feature_path = args.root_path, args.subdir, args.dataset, args.marginal, args.feature_path
     if args.task_name != '':
         task_name = args.task_name + '_'
     else:
@@ -63,7 +63,8 @@ if __name__ == '__main__':
     #     print(out_file, 'already exists')
     #     sys.exit(0)
 
-    output, errors = generate_data(
+    # output, errors = 
+    generate_data(
             args.micro_file,
             args.block_clean_file,
             args.num_sols,
@@ -76,12 +77,12 @@ if __name__ == '__main__':
             subdir = subdir,
             dataset = dataset,
             marginal = marginal,
-            features = features
+            feature_path = feature_path
             )
 
-    print('errors', errors, file=sys.stderr)
-    print('Writing to', out_file)
-    with open(out_file, 'wb') as f:
-        pickle.dump(output, f)
-    print(len(errors), 'errors')
-    os.remove(tmp_file)
+    # print('errors', errors, file=sys.stderr)
+    # print('Writing to', out_file)
+    # with open(out_file, 'wb') as f:
+    #     pickle.dump(output, f)
+    # print(len(errors), 'errors')
+    # os.remove(tmp_file)
