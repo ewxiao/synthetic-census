@@ -1,0 +1,10 @@
+{
+    "state": "PA",
+    "micro_file": "/work2/ewxiao/synthetic-census/census_data/PA/pa.2010.pums.01.txt",
+    "person_micro_file": "/work2/ewxiao/synthetic-census/census_data/output/PA/person_micro.csv",
+    "block_file": "/work2/ewxiao/synthetic-census/census_data/PA/block_data2.csv",
+    "block_clean_file": "/work2/ewxiao/synthetic-census/census_data/PA/block_data_cleaned2.csv",
+    "synthetic_output_dir": "/work2/ewxiao/synthetic-census/census_data/output/PA/",
+    "include_probs": false,
+    "num_sols": 1
+}
