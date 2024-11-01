@@ -86,14 +86,22 @@ def generate_data(
     orig_df = pd.read_csv(feature_path)
     orig_df['correct'] = orig_df['correct'].astype(bool)
 
+    print("\nHow many solutions do not contain the candidates?")
     sol, col_arr = solve(hh_dist, raprank_encoding, n = n,answers = answers, constraint_flag = False)
     num_sol_found_notequals = len(sol)
-    print(num_sol_found_equals, 'unique solutions')
+    if num_sol_found_notequals == 0:
+        print("None. The candidates must exist.")
+    else:
+        print(f"At least {num_sol_found_notequals}. We cannot make any conclusions.")
     orig_df['ip_correct'] = num_sol_found_notequals == 0
 
+    print("\nHow many solutions contain the candidates?")
     sol, col_arr = solve(hh_dist, raprank_encoding, n = n,answers = answers, constraint_flag = True)
     num_sol_found_equals = len(sol)
-    print(num_sol_found_equals, 'unique solutions')
+    if num_sol_found_equals == 0:
+        print("None. The candidates cannot exist.")
+    else:
+        print(f"At least {num_sol_found_equals}. We cannot make any conclusions.")
     orig_df['ip_incorrect'] = num_sol_found_equals == 0
 
     # debugging
@@ -103,6 +111,9 @@ def generate_data(
     orig_df['no_bugs'] &= ~issues
     # if the candidate is incorrect, but IP says it is definitely correct, there is a bug
     issues = (~orig_df['correct']) & (orig_df['ip_correct'])
+    orig_df['no_bugs'] &= ~issues
+    # IP cannot say it is both definitely correct and incorrect
+    issues = (orig_df['ip_correct']) & (orig_df['ip_incorrect'])
     orig_df['no_bugs'] &= ~issues
 
     # check if IP was actually right about anything

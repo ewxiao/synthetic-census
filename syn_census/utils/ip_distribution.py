@@ -120,7 +120,7 @@ def ip_solve(counts: tuple, raprank: dict, dist: dict, n=1, num_solutions=500, c
         # for v in m.getVars():
             # print('%s %g' % (v.varName, v.x))
         nSolutions = m.SolCount
-        print(f"n:{nSolutions}")
+        # print(f"n:{nSolutions}")
         
         if nSolutions > 0:
             # values = m.Xn
@@ -133,7 +133,7 @@ def ip_solve(counts: tuple, raprank: dict, dist: dict, n=1, num_solutions=500, c
             #     check = (values == answer.cpu().numpy()).all(1).sum() == a
             #     assert(check)
 
-            print('Obj: %g' % m.objVal)
+            # print('Obj: %g' % m.objVal)
         else:
             col_arr.append(1)
     # print('Number of solutions found: ' + str(nSolutions))
