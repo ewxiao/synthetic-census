@@ -86,18 +86,17 @@ def generate_data(
     orig_df = pd.read_csv(feature_path)
     orig_df['correct'] = orig_df['correct'].astype(bool)
 
-    sol, col_arr = solve(hh_dist, raprank_encoding, n = n,answers = answers, constraint_flag = True)
-    num_sol_found_equals = len(sol)
-    print(num_sol_found_equals, 'unique solutions')
-    orig_df['ip_incorrect'] = num_sol_found_equals == 0
-
     sol, col_arr = solve(hh_dist, raprank_encoding, n = n,answers = answers, constraint_flag = False)
     num_sol_found_notequals = len(sol)
     print(num_sol_found_equals, 'unique solutions')
     orig_df['ip_correct'] = num_sol_found_notequals == 0
 
-    # debugging
+    sol, col_arr = solve(hh_dist, raprank_encoding, n = n,answers = answers, constraint_flag = True)
+    num_sol_found_equals = len(sol)
+    print(num_sol_found_equals, 'unique solutions')
+    orig_df['ip_incorrect'] = num_sol_found_equals == 0
 
+    # debugging
     orig_df['no_bugs'] = True
     # if the candidate is correct, but IP says it is definitely incorrect, there is a bug
     issues = (orig_df['correct']) & (orig_df['ip_incorrect'])
@@ -106,6 +105,7 @@ def generate_data(
     issues = (~orig_df['correct']) & (orig_df['ip_correct'])
     orig_df['no_bugs'] &= ~issues
 
+    # check if IP was actually right about anything
     orig_df['ip_success'] = False
     # if the candidate is correct, and IP says it is definitely correct
     successes = (orig_df['correct']) & (orig_df['ip_correct'])
