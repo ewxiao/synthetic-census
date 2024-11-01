@@ -45,15 +45,18 @@ def generate_data(
     geo_id = dataset
     ip_output = f"./ip_output/{geo_id}"
     Path(ip_output).mkdir(parents=True, exist_ok=True)
+
     features = Path(feature_path).stem
     features_list = features.split("_")
     features_full = ["TEN", "VACS", "HHSIZE", "HHT", "HHT2", "CPLT", "UPART", "MULTG", "PAC", 
                 "TP18", "TP60", "TP65", "TP75", "PAOC", "HHSEX", "THHSPAN", "THHRACE", "THHLDRAGE"]
     features_drop = [feat for feat in features_full if feat not in set(features_list)]
+
     data = get_dataset(geo_id, root_path=root_path)
     domain = data.domain
     n = len(data.df)
     query_manager = get_qm([marginal], geo_id, data, root_path, device, unit = True)
+
     idxs_keep = []
     unique_queries = []
     descriptions = [query_manager.get_query_desc(i) for i in range(query_manager.num_queries)]
@@ -63,6 +66,7 @@ def generate_data(
             print(workload)
             idxs_keep.append(idx)
     query_manager.filter_query_workloads(idxs_keep)
+
     answers = query_manager.get_answers(data, density = False)
     hh_dist = encode4_hh_dist(data, domain, query_manager)
     answer_encoding = encode4_row(answers)
@@ -80,23 +84,37 @@ def generate_data(
 
     samplers = {}
     orig_df = pd.read_csv(feature_path)
+    orig_df['correct'] = orig_df['correct'].astype(bool)
 
-    sol,col_arr = solve(hh_dist, raprank_encoding, n = n,answers = answers, constraint_flag = True)
-    x = len(sol)
-    print(x, 'unique solutions')
-    solution_path = feature_path[:-4] + "T.txt"
-    # with open(solution_path, 'w') as f:
-    #     f.write('\n'.join([' '.join(f"{x}") for x in sol]))
-    orig_df['ip_incorrect'] = col_arr
+    sol, col_arr = solve(hh_dist, raprank_encoding, n = n,answers = answers, constraint_flag = True)
+    num_sol_found_equals = len(sol)
+    print(num_sol_found_equals, 'unique solutions')
+    orig_df['ip_incorrect'] = num_sol_found_equals == 0
 
     sol, col_arr = solve(hh_dist, raprank_encoding, n = n,answers = answers, constraint_flag = False)
-    x = len(sol)
-    print(x, 'unique solutions')
-    solution_path = feature_path[:-4] + "_F.txt"
-    # with open(solution_path, 'w') as f:
-    #     f.write('\n'.join([' '.join(f"{x}") for x in sol]))
-    orig_df['ip_correct'] = col_arr
-    
+    num_sol_found_notequals = len(sol)
+    print(num_sol_found_equals, 'unique solutions')
+    orig_df['ip_correct'] = num_sol_found_notequals == 0
+
+    # debugging
+
+    orig_df['no_bugs'] = True
+    # if the candidate is correct, but IP says it is definitely incorrect, there is a bug
+    issues = (orig_df['correct']) & (orig_df['ip_incorrect'])
+    orig_df['no_bugs'] &= ~issues
+    # if the candidate is incorrect, but IP says it is definitely correct, there is a bug
+    issues = (~orig_df['correct']) & (orig_df['ip_correct'])
+    orig_df['no_bugs'] &= ~issues
+
+    orig_df['ip_success'] = False
+    # if the candidate is correct, and IP says it is definitely correct
+    successes = (orig_df['correct']) & (orig_df['ip_correct'])
+    orig_df['ip_success'] |= successes
+    # if the candidate is incorrect, and IP says it is definitely incorrect
+    successes = (~orig_df['correct']) & (orig_df['ip_incorrect'])
+    orig_df['ip_success'] |= successes
+
+
     orig_df.to_csv(os.path.join(ip_output, f"{features}.csv"), index = False)
 
     # chosen = sample_from_sol(sol)
