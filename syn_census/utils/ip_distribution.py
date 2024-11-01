@@ -16,10 +16,10 @@ def ip_enumerate(counts: tuple, elements: tuple, num_solutions=50):
     """
     return ip_solve(counts, {e: 1 for e in elements}, num_solutions=num_solutions)
 
-def ip_solve(counts: tuple, raprank: dict, dist: dict, n=1, num_solutions=500, constraint_flag = False):
+def ip_solve(counts: tuple, raprank: dict, dist: dict, n=1, num_solutions=500, check_equality = False):
     ordering = get_ordering(dist)
     constraint_mat = np.tile(np.identity(len(counts)), n)
-    col_arr = []
+    list_num_sols = []
     sols = []
     for answer in raprank:
         i = 0
@@ -52,7 +52,7 @@ def ip_solve(counts: tuple, raprank: dict, dist: dict, n=1, num_solutions=500, c
         y = m.addVars(n, vtype=GRB.BINARY, name="y")
 
         # Big M constant (since Y_flat and x are binary, M=1 is appropriate)
-        M = n * 2
+        M = 1e6
 
         w = m.addVars(constraint_mat.shape[1], vtype=GRB.BINARY, name="w")
         v = m.addVars(constraint_mat.shape[1], vtype=GRB.BINARY, name='v')
@@ -97,7 +97,7 @@ def ip_solve(counts: tuple, raprank: dict, dist: dict, n=1, num_solutions=500, c
 
         z_sum = gp.quicksum(z[i] for i in range(n))
 
-        if constraint_flag:
+        if check_equality:
             m.addConstr(z_sum == a, name="match_count")
         else:
             check = m.addVar(vtype=GRB.BINARY, name="delta")
@@ -127,7 +127,7 @@ def ip_solve(counts: tuple, raprank: dict, dist: dict, n=1, num_solutions=500, c
             # if not constraint_flag:
             #     values = values[:-len(raprank) * n]
             # values = np.array(values).reshape(n, d)
-            col_arr.append(0)
+            list_num_sols.append(nSolutions)
 
             # for answer, a in raprank.items():
             #     check = (values == answer.cpu().numpy()).all(1).sum() == a
@@ -135,7 +135,7 @@ def ip_solve(counts: tuple, raprank: dict, dist: dict, n=1, num_solutions=500, c
 
             # print('Obj: %g' % m.objVal)
         else:
-            col_arr.append(1)
+            list_num_sols.append(0)
     # print('Number of solutions found: ' + str(nSolutions))
     # for sol in range(nSolutions):
         # m.setParam(GRB.Param.SolutionNumber, sol)
@@ -159,8 +159,10 @@ def ip_solve(counts: tuple, raprank: dict, dist: dict, n=1, num_solutions=500, c
         #     for j in range(d):
         #         print((values[i * d + j] - answer[j]))
 
+        pdb.set_trace
+
         env.dispose()
-    return sols, col_arr
+    return sols, list_num_sols
 
 if __name__ == '__main__':
     dist = {

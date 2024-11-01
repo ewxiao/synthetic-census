@@ -66,6 +66,24 @@ def generate_data(
             print(workload)
             idxs_keep.append(idx)
     query_manager.filter_query_workloads(idxs_keep)
+    # load candidates
+    orig_df = pd.read_csv(feature_path)
+    orig_df['correct'] = orig_df['correct'].astype(bool)
+
+
+    # check what columns we have left
+    remaining_cols = []
+    for workload in query_manager.workloads:
+        remaining_cols += list(workload)
+    remaining_cols = np.unique(remaining_cols)
+
+    # if the queries do not have information about all the columns in the candidates, we will just skip since there's no point
+    candidate_cols = orig_df.columns[:-2]
+    if len(candidate_cols) != len(remaining_cols):
+        print("Skipping... not enough queries")
+        exit()
+
+    # TODO: drop duplicate queries to speed things up?
 
     answers = query_manager.get_answers(data, density = False)
     hh_dist = encode4_hh_dist(data, domain, query_manager)
@@ -83,26 +101,26 @@ def generate_data(
     already_finished = set([o['id'] for o in output])
 
     samplers = {}
-    orig_df = pd.read_csv(feature_path)
-    orig_df['correct'] = orig_df['correct'].astype(bool)
 
     print("\nHow many solutions do not contain the candidates?")
-    sol, col_arr = solve(hh_dist, raprank_encoding, n = n,answers = answers, constraint_flag = False)
-    num_sol_found_notequals = len(sol)
-    if num_sol_found_notequals == 0:
-        print("None. The candidates must exist.")
-    else:
-        print(f"At least {num_sol_found_notequals}. We cannot make any conclusions.")
-    orig_df['ip_correct'] = num_sol_found_notequals == 0
+    sols, list_num_sols = solve(hh_dist, raprank_encoding, n = n,answers = answers, check_equality = False)
+    for cand_idx, num_sol_found_notequals in enumerate(list_num_sols):
+        print(f"Candidate #{cand_idx + 1}")
+        if num_sol_found_notequals == 0:
+            print("None. The candidate must exist.")
+        else:
+            print(f"At least {num_sol_found_notequals}. We cannot make any conclusions.")
+    orig_df['ip_correct'] = np.array(list_num_sols) == 0
 
     print("\nHow many solutions contain the candidates?")
-    sol, col_arr = solve(hh_dist, raprank_encoding, n = n,answers = answers, constraint_flag = True)
-    num_sol_found_equals = len(sol)
-    if num_sol_found_equals == 0:
-        print("None. The candidates cannot exist.")
-    else:
-        print(f"At least {num_sol_found_equals}. We cannot make any conclusions.")
-    orig_df['ip_incorrect'] = num_sol_found_equals == 0
+    sols, list_num_sols = solve(hh_dist, raprank_encoding, n = n,answers = answers, check_equality = True)
+    for cand_idx, num_sol_found_equals in enumerate(list_num_sols):
+        print(f"Candidate #{cand_idx + 1}")
+        if num_sol_found_equals == 0:
+            print("None. The candidate cannot exist.")
+        else:
+            print(f"At least {num_sol_found_equals}. We cannot make any conclusions.")
+    orig_df['ip_incorrect'] = np.array(list_num_sols) == 0
 
     # debugging
     orig_df['no_bugs'] = True
@@ -124,7 +142,6 @@ def generate_data(
     # if the candidate is incorrect, and IP says it is definitely incorrect
     successes = (~orig_df['correct']) & (orig_df['ip_incorrect'])
     orig_df['ip_success'] |= successes
-
 
     orig_df.to_csv(os.path.join(ip_output, f"{features}.csv"), index = False)
 
