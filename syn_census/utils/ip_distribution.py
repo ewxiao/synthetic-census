@@ -49,13 +49,14 @@ def ip_solve(counts: tuple, raprank: dict, dist: dict, n=1, num_solutions=500, c
 
         # Create binary decision variables z[i] (to indicate if row i matches X)
         z = m.addVars(n, vtype=GRB.BINARY, name="z")
-        y = m.addVars(n, vtype=GRB.BINARY, name="y")
+        y = m.addVars(n, vtype=GRB.BINARY, name="y") # helper variable
 
         # Big M constant (since Y_flat and x are binary, M=1 is appropriate)
         M = 1e6
 
+        # indicator for whether each element in a row i (ie., x[i * d: (i + 1) * d]) matches each element in answers
         w = m.addVars(constraint_mat.shape[1], vtype=GRB.BINARY, name="w")
-        v = m.addVars(constraint_mat.shape[1], vtype=GRB.BINARY, name='v')
+        v = m.addVars(constraint_mat.shape[1], vtype=GRB.BINARY, name='v') # helper variable
         for i in range(n):
             for j in range(d):
                 idx = i * d + j
@@ -87,7 +88,7 @@ def ip_solve(counts: tuple, raprank: dict, dist: dict, n=1, num_solutions=500, c
                         --> anything goes
                 """
 
-            # if w matches answer at all indices, then it should be all 1's --> sum 
+            # if w matches answer at all indices, then it should be that all 1's --> sum 
             w_sum = gp.quicksum(w[k] for k in range(i * d, (i + 1) * d))
             # logic same as above for making z an indicator of w_sum == d
             m.addConstr(w_sum - d <= M * (1 - z[i]))
