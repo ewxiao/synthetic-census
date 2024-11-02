@@ -45,15 +45,35 @@ def generate_data(
     geo_id = dataset
     ip_output = f"./ip_output/{geo_id}"
     Path(ip_output).mkdir(parents=True, exist_ok=True)
+
     features = Path(feature_path).stem
     features_list = features.split("_")
     features_full = ["TEN", "VACS", "HHSIZE", "HHT", "HHT2", "CPLT", "UPART", "MULTG", "PAC", 
                 "TP18", "TP60", "TP65", "TP75", "PAOC", "HHSEX", "THHSPAN", "THHRACE", "THHLDRAGE"]
     features_drop = [feat for feat in features_full if feat not in set(features_list)]
+
+    # load dataset
     data = get_dataset(geo_id, root_path=root_path)
     domain = data.domain
     n = len(data.df)
+
+    # load candidates
+    orig_df = pd.read_csv(feature_path)
+    orig_df['correct'] = orig_df['correct'].astype(bool)
+
+    # check the candidate label (whether it's correct)
+    for idx, row in orig_df.iterrows():
+        mask = np.ones(len(data.df), dtype=bool)
+        for col in row.index:
+            if col == 'N':
+                break
+            mask &= (data.df[col] == row[col]).values
+        is_correct = row['N'] == mask.sum()
+        assert is_correct == row['correct'], 'candidate multiplicity (N) and label (correct) cannot be right'
+
+    # set up query manager
     query_manager = get_qm([marginal], geo_id, data, root_path, device, unit = True)
+
     idxs_keep = []
     unique_queries = []
     descriptions = [query_manager.get_query_desc(i) for i in range(query_manager.num_queries)]
@@ -63,6 +83,21 @@ def generate_data(
             print(workload)
             idxs_keep.append(idx)
     query_manager.filter_query_workloads(idxs_keep)
+
+    # check what columns we have left
+    remaining_cols = []
+    for workload in query_manager.workloads:
+        remaining_cols += list(workload)
+    remaining_cols = np.unique(remaining_cols)
+
+    # if the queries do not have information about all the columns in the candidates, we will just skip since there's no point
+    candidate_cols = orig_df.columns[:-2]
+    if len(candidate_cols) != len(remaining_cols):
+        print("Skipping... not enough queries")
+        exit()
+
+    # TODO: drop duplicate queries to speed things up?
+
     answers = query_manager.get_answers(data, density = False)
     hh_dist = encode4_hh_dist(data, domain, query_manager)
     answer_encoding = encode4_row(answers)
@@ -79,24 +114,48 @@ def generate_data(
     already_finished = set([o['id'] for o in output])
 
     samplers = {}
-    orig_df = pd.read_csv(feature_path)
 
-    sol,col_arr = solve(hh_dist, raprank_encoding, n = n,answers = answers, constraint_flag = True)
-    x = len(sol)
-    print(x, 'unique solutions')
-    solution_path = feature_path[:-4] + "T.txt"
-    # with open(solution_path, 'w') as f:
-    #     f.write('\n'.join([' '.join(f"{x}") for x in sol]))
-    orig_df['ip_incorrect'] = col_arr
+    print("\nHow many solutions do not contain the candidates?")
+    sols, list_num_sols = solve(hh_dist, raprank_encoding, n = n,answers = answers, check_equality = False)
+    for cand_idx, num_sol_found_notequals in enumerate(list_num_sols):
+        print(f"Candidate #{cand_idx + 1}")
+        if num_sol_found_notequals == 0:
+            print("None. The candidate must exist.")
+        else:
+            print(f"At least {num_sol_found_notequals}. We cannot make any conclusions.")
+    orig_df['ip_correct'] = np.array(list_num_sols) == 0
 
-    sol, col_arr = solve(hh_dist, raprank_encoding, n = n,answers = answers, constraint_flag = False)
-    x = len(sol)
-    print(x, 'unique solutions')
-    solution_path = feature_path[:-4] + "_F.txt"
-    # with open(solution_path, 'w') as f:
-    #     f.write('\n'.join([' '.join(f"{x}") for x in sol]))
-    orig_df['ip_correct'] = col_arr
-    
+    print("\nHow many solutions contain the candidates?")
+    sols, list_num_sols = solve(hh_dist, raprank_encoding, n = n,answers = answers, check_equality = True)
+    for cand_idx, num_sol_found_equals in enumerate(list_num_sols):
+        print(f"Candidate #{cand_idx + 1}")
+        if num_sol_found_equals == 0:
+            print("None. The candidate cannot exist.")
+        else:
+            print(f"At least {num_sol_found_equals}. We cannot make any conclusions.")
+    orig_df['ip_incorrect'] = np.array(list_num_sols) == 0
+
+    # debugging
+    orig_df['no_bugs'] = True
+    # if the candidate is correct, but IP says it is definitely incorrect, there is a bug
+    issues = (orig_df['correct']) & (orig_df['ip_incorrect'])
+    orig_df['no_bugs'] &= ~issues
+    # if the candidate is incorrect, but IP says it is definitely correct, there is a bug
+    issues = (~orig_df['correct']) & (orig_df['ip_correct'])
+    orig_df['no_bugs'] &= ~issues
+    # IP cannot say it is both definitely correct and incorrect
+    issues = (orig_df['ip_correct']) & (orig_df['ip_incorrect'])
+    orig_df['no_bugs'] &= ~issues
+
+    # check if IP was actually right about anything
+    orig_df['ip_success'] = False
+    # if the candidate is correct, and IP says it is definitely correct
+    successes = (orig_df['correct']) & (orig_df['ip_correct'])
+    orig_df['ip_success'] |= successes
+    # if the candidate is incorrect, and IP says it is definitely incorrect
+    successes = (~orig_df['correct']) & (orig_df['ip_incorrect'])
+    orig_df['ip_success'] |= successes
+
     orig_df.to_csv(os.path.join(ip_output, f"{features}.csv"), index = False)
 
     # chosen = sample_from_sol(sol)
