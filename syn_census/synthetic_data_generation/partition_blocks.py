@@ -6,6 +6,7 @@ import numpy as np
 import torch
 import pdb
 from pathlib import Path
+from pprint import pprint
 from .guided_solver import SOLVER_PARAMS, SOLVER_RESULTS, SolverResults, solve, reduce_dist
 from ..utils.encoding import encode4_row, encode4_hh_dist, encode_raprank
 from ..utils.census_utils import *
@@ -75,8 +76,6 @@ def generate_data(
     query_manager = get_qm([marginal], geo_id, data, root_path, device, unit = True)
 
     idxs_keep = []
-    unique_queries = []
-    descriptions = [query_manager.get_query_desc(i) for i in range(query_manager.num_queries)]
     for idx, workload in enumerate(query_manager.workloads):
         contains_other_cols = np.any([col not in features_list for col in workload])
         if not contains_other_cols:
@@ -84,15 +83,41 @@ def generate_data(
             idxs_keep.append(idx)
     query_manager.filter_query_workloads(idxs_keep)
 
+    descriptions = [query_manager.get_query_desc(i) for i in range(query_manager.num_queries)]
+    # keep queries that without OR
+    _descriptions = []
+    for x in descriptions:
+        keep = True
+        for y in x:
+            for v in y.values():
+                if not isinstance(v, int):
+                    keep = False
+        if keep:
+            _descriptions.append(x)
+    descriptions = _descriptions
+    # check that it covers the entire feature list in the candidate
+    descriptions = [x for x in descriptions if len(x) == len(features_list)]
+
+    # check if the candidate can already be read off the table
+    orig_df['in_tables'] = False
+    if len(descriptions) > 0:
+        rows = [pd.DataFrame(d).fillna(0).sum().astype(int).to_frame().T for d in descriptions]
+        rows = pd.concat(rows)
+        for idx in orig_df.index:
+            check = orig_df.loc[[idx]].merge(rows, on=list(rows.columns))
+            check = len(check) > 0
+            orig_df.loc[idx, 'in_tables'] = check
+
     # check what columns we have left
-    remaining_cols = []
+    remaining_qm_cols = []
     for workload in query_manager.workloads:
-        remaining_cols += list(workload)
-    remaining_cols = np.unique(remaining_cols)
+        remaining_qm_cols += list(workload)
+    remaining_qm_cols = np.unique(remaining_qm_cols)
 
     # if the queries do not have information about all the columns in the candidates, we will just skip since there's no point
-    candidate_cols = orig_df.columns[:-2]
-    if len(candidate_cols) != len(remaining_cols):
+    idx_N = np.where(orig_df.columns == 'N')[0][0]
+    candidate_cols = orig_df.columns[:idx_N]
+    if len(candidate_cols) != len(remaining_qm_cols):
         print("Skipping... not enough queries")
         exit()
 
@@ -135,27 +160,7 @@ def generate_data(
             print(f"At least {num_sol_found_equals}. We cannot make any conclusions.")
     orig_df['ip_incorrect'] = np.array(list_num_sols) == 0
 
-    # debugging
-    orig_df['no_bugs'] = True
-    # if the candidate is correct, but IP says it is definitely incorrect, there is a bug
-    issues = (orig_df['correct']) & (orig_df['ip_incorrect'])
-    orig_df['no_bugs'] &= ~issues
-    # if the candidate is incorrect, but IP says it is definitely correct, there is a bug
-    issues = (~orig_df['correct']) & (orig_df['ip_correct'])
-    orig_df['no_bugs'] &= ~issues
-    # IP cannot say it is both definitely correct and incorrect
-    issues = (orig_df['ip_correct']) & (orig_df['ip_incorrect'])
-    orig_df['no_bugs'] &= ~issues
-
-    # check if IP was actually right about anything
-    orig_df['ip_success'] = False
-    # if the candidate is correct, and IP says it is definitely correct
-    successes = (orig_df['correct']) & (orig_df['ip_correct'])
-    orig_df['ip_success'] |= successes
-    # if the candidate is incorrect, and IP says it is definitely incorrect
-    successes = (~orig_df['correct']) & (orig_df['ip_incorrect'])
-    orig_df['ip_success'] |= successes
-
+    pprint(orig_df)
     orig_df.to_csv(os.path.join(ip_output, f"{features}.csv"), index = False)
 
     # chosen = sample_from_sol(sol)
