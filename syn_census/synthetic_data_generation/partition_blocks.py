@@ -84,6 +84,9 @@ def generate_data(
     query_manager.filter_query_workloads(idxs_keep)
 
     descriptions = [query_manager.get_query_desc(i) for i in range(query_manager.num_queries)]
+
+    pdb.set_trace()
+    
     # keep queries that without OR
     _descriptions = []
     for x in descriptions:

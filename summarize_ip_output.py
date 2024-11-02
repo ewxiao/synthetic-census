@@ -8,7 +8,7 @@ import pdb
 # Replace 'your_directory_path' with the path to your directory
 directory_path = 'ip_output/010030102001008'
 
-cols = ['correct', 'ip_correct', 'ip_incorrect', 'no_bugs', 'ip_success']
+cols = ['correct', 'ip_correct', 'ip_incorrect', 'no_bugs', 'ip_success', 'success_and_not_in_tables']
 
 results = []
 for filepath in glob.glob(os.path.join(directory_path, '*.csv')):
@@ -37,7 +37,11 @@ for filepath in glob.glob(os.path.join(directory_path, '*.csv')):
     successes = (~df['correct']) & (df['ip_incorrect'])
     df['ip_success'] |= successes
 
-    df['success_and_not_in_tables'] = df['ip_success'] & ~df['in_tables']
+    df['success_and_not_in_tables'] = (df['ip_success']) & (df['ip_correct']) & (~df['in_tables'])
+
+    if df['success_and_not_in_tables'].any():
+        print(filepath)
+        print(df)
 
     assert df['no_bugs'].all(), filepath
     # if not df['no_bugs'].all():
