@@ -160,8 +160,6 @@ def ip_solve(counts: tuple, raprank: dict, dist: dict, n=1, num_solutions=500, c
         #     for j in range(d):
         #         print((values[i * d + j] - answer[j]))
 
-        pdb.set_trace
-
         env.dispose()
     return sols, list_num_sols
 

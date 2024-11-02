@@ -52,9 +52,26 @@ def generate_data(
                 "TP18", "TP60", "TP65", "TP75", "PAOC", "HHSEX", "THHSPAN", "THHRACE", "THHLDRAGE"]
     features_drop = [feat for feat in features_full if feat not in set(features_list)]
 
+    # load dataset
     data = get_dataset(geo_id, root_path=root_path)
     domain = data.domain
     n = len(data.df)
+
+    # load candidates
+    orig_df = pd.read_csv(feature_path)
+    orig_df['correct'] = orig_df['correct'].astype(bool)
+
+    # check the candidate label (whether it's correct)
+    for idx, row in orig_df.iterrows():
+        mask = np.ones(len(data.df), dtype=bool)
+        for col in row.index:
+            if col == 'N':
+                break
+            mask &= (data.df[col] == row[col]).values
+        is_correct = row['N'] == mask.sum()
+        assert is_correct == row['correct'], 'candidate multiplicity (N) and label (correct) cannot be right'
+
+    # set up query manager
     query_manager = get_qm([marginal], geo_id, data, root_path, device, unit = True)
 
     idxs_keep = []
@@ -66,10 +83,6 @@ def generate_data(
             print(workload)
             idxs_keep.append(idx)
     query_manager.filter_query_workloads(idxs_keep)
-    # load candidates
-    orig_df = pd.read_csv(feature_path)
-    orig_df['correct'] = orig_df['correct'].astype(bool)
-
 
     # check what columns we have left
     remaining_cols = []
